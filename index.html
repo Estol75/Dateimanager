@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Schul-Dateimanager</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #2a3050;
+    --accent: #4f8ef7;
+    --green: #3ecf8e;
+    --red: #f7564a;
+    --yellow: #f7c948;
+    --text: #e8ecf5;
+    --muted: #6b7599;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Syne', sans-serif;
+    --tap: 48px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #login-screen::before {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(79,142,247,0.12) 0%, transparent 70%);
+    top: -100px; left: -100px;
+    pointer-events: none;
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-logo {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .login-title {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--text), var(--muted));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .login-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    font-family: var(--font-mono);
+  }
+
+  /* Info Box */
+  .login-info {
+    background: rgba(79,142,247,0.08);
+    border: 1px solid rgba(79,142,247,0.2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    line-height: 1.6;
+  }
+
+  .login-info strong { color: var(--accent); }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    height: var(--tap);
+  }
+
+  .field input:focus { border-color: var(--accent); }
+
+  .remember-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .remember-row input[type=checkbox] {
+    width: 20px; height: 20px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .remember-row span {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0 16px;
+    height: var(--tap);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-primary:active { transform: scale(0.97); opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .error-msg {
+    background: rgba(247,86,74,0.1);
+    border: 1px solid rgba(247,86,74,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--red);
+    margin-top: 14px;
+    display: none;
+  }
+
+  /* ── APP ── */
+  #app-screen { display: none; min-height: 100vh; min-height: 100dvh; flex-direction: column; }
+
+  /* Topbar */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-logo {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    overflow: hidden;
+    overflow-x: auto;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+  .breadcrumb::-webkit-scrollbar { display: none; }
+
+  .bc-part {
+    color: var(--muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 4px 2px;
+  }
+  .bc-part:active { color: var(--accent); }
+  .bc-part.current { color: var(--text); cursor: default; }
+  .bc-sep { color: var(--border); flex-shrink: 0; }
+
+  .btn-logout {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 0 12px;
+    height: 36px;
+    font-size: 12px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .btn-logout:active { border-color: var(--red); color: var(--red); }
+
+  /* Toolbar */
+  .toolbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toolbar::-webkit-scrollbar { display: none; }
+
+  .btn-tool {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 0 14px;
+    height: 38px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-tool:active { border-color: var(--accent); color: var(--accent); }
+  .btn-tool.green { border-color: rgba(62,207,142,0.3); color: var(--green); }
+
+  /* Upload zone */
+  .upload-zone {
+    margin: 12px 16px 0;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    cursor: pointer;
+    display: none;
+  }
+  .upload-zone.visible { display: block; }
+  .upload-zone:active { border-color: var(--accent); color: var(--accent); }
+
+  /* File list */
+  .file-list {
+    flex: 1;
+    padding: 8px 0 32px;
+  }
+
+  /* Mobile card style */
+  .file-item {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    min-height: var(--tap);
+    border-bottom: 1px solid rgba(42,48,80,0.5);
+    cursor: pointer;
+    gap: 12px;
+    position: relative;
+  }
+
+  .file-item:active { background: var(--surface2); }
+
+  .file-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+  }
+
+  .file-info {
+    flex: 1;
+    overflow: hidden;
+    padding: 10px 0;
+  }
+
+  .file-name-text {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+
+  .file-actions-mobile {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .act-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .act-btn:active { border-color: var(--accent); color: var(--accent); }
+  .act-btn.del:active { border-color: var(--red); color: var(--red); }
+
+  /* Back row */
+  .back-item {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: var(--tap);
+    border-bottom: 1px solid rgba(42,48,80,0.5);
+    cursor: pointer;
+    gap: 12px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .back-item:active { background: var(--surface2); }
+
+  /* Empty */
+  .empty-state {
+    text-align: center;
+    padding: 64px 16px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 64px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .spinner {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-bottom: 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 36px;
+    width: 100%;
+    max-width: 500px;
+    animation: slideUp 0.2s ease both;
+  }
+
+  .modal h3 { font-size: 16px; margin-bottom: 16px; }
+  .modal input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 16px;
+    height: var(--tap);
+  }
+  .modal input:focus { border-color: var(--accent); }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns button {
+    flex: 1;
+    height: var(--tap);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+  }
+  .modal-btns button.ok {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* Toast */
+  .toast-container {
+    position: fixed;
+    bottom: 24px; left: 16px; right: 16px;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    animation: slideUp 0.3s ease both;
+    text-align: center;
+  }
+  .toast.success { border-color: rgba(62,207,142,0.4); color: var(--green); }
+  .toast.error { border-color: rgba(247,86,74,0.4); color: var(--red); }
+
+  input[type=file] { display: none; }
+
+  /* Desktop enhancements */
+  @media (min-width: 640px) {
+    .file-item {
+      border-radius: 8px;
+      border: 1px solid transparent;
+      margin: 2px 12px;
+    }
+    .file-item:hover {
+      background: var(--surface2);
+      border-color: var(--border);
+    }
+    .back-item {
+      border-radius: 8px;
+      margin: 2px 12px;
+      border-bottom: none;
+    }
+    .back-item:hover { background: var(--surface2); }
+    .toast-container { left: auto; right: 24px; width: 320px; }
+    .modal { border-radius: 16px; margin-bottom: 40px; }
+    .modal-overlay { align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">EDV Schule Plattling</div>
+    <div class="login-title">Dateimanager</div>
+    <div class="login-sub">ux5.edvschule-plattling.de</div>
+
+    <div class="login-info">
+      Melde dich mit deinem <strong>Windows-Benutzernamen</strong> und <strong>Windows-Passwort</strong> an — dasselbe wie beim PC in der Schule.
+    </div>
+
+    <div class="field">
+      <label>Windows-Benutzername</label>
+      <input type="text" id="inp-user" placeholder="z.B. mustermann" autocomplete="username" autocapitalize="none" autocorrect="off">
+    </div>
+    <div class="field">
+      <label>Windows-Passwort</label>
+      <input type="password" id="inp-pass" autocomplete="current-password">
+    </div>
+
+    <label class="remember-row">
+      <input type="checkbox" id="chk-remember">
+      <span>Angemeldet bleiben</span>
+    </label>
+
+    <button class="btn-primary" id="btn-login">Anmelden →</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="topbar-logo">📁</div>
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <button class="btn-logout" id="btn-logout">Abmelden</button>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn-tool green" id="btn-toggle-upload">⬆ Hochladen</button>
+    <button class="btn-tool" id="btn-mkdir">📁 Neuer Ordner</button>
+    <button class="btn-tool" id="btn-refresh">↻</button>
+  </div>
+
+  <div class="upload-zone" id="upload-zone">
+    Tippen zum Hochladen
+    <input type="file" id="file-input" multiple>
+  </div>
+
+  <div class="file-list" id="file-list">
+    <div class="loading"><div class="spinner"></div><br>Verbinde…</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Name eingeben</h3>
+    <input type="text" id="modal-input">
+    <div class="modal-btns">
+      <button id="modal-cancel">Abbrechen</button>
+      <button class="ok" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = "https://stops-food-noble-developing.trycloudflare.com/api";
+let token = null;
+let currentPath = ".";
+let username = "";
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+
+function apiFetch(endpoint, opts = {}) {
+  const headers = { "Content-Type": "application/json", "X-Auth-Token": token, ...opts.headers };
+  if (opts.body instanceof FormData) delete headers["Content-Type"];
+  return fetch(API + endpoint, { ...opts, headers });
+}
+
+function toast(msg, type = "success") {
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById("toasts").appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function formatSize(bytes) {
+  if (!bytes || bytes === 0) return "";
+  const k = 1024;
+  const sizes = ["B","KB","MB","GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+function formatDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts * 1000);
+  return d.toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"2-digit" });
+}
+
+function fileIcon(name, isDir) {
+  if (isDir) return "📁";
+  const ext = name.split(".").pop().toLowerCase();
+  const icons = {
+    pdf:"📄", doc:"📝", docx:"📝", xls:"📊", xlsx:"📊", ppt:"📋", pptx:"📋",
+    jpg:"🖼", jpeg:"🖼", png:"🖼", gif:"🖼", svg:"🖼",
+    mp3:"🎵", wav:"🎵", mp4:"🎬", avi:"🎬",
+    zip:"🗜", rar:"🗜", tar:"🗜", gz:"🗜",
+    py:"🐍", js:"⚡", html:"🌐", css:"🎨", sh:"⚙", txt:"📃", md:"📃"
+  };
+  return icons[ext] || "📄";
+}
+
+// ── REMEMBER ME ───────────────────────────────────────────────────────
+
+function saveCredentials(u, p) {
+  try { localStorage.setItem("sftp_user_saved", u); localStorage.setItem("sftp_pass_saved", btoa(p)); } catch(e){}
+}
+function loadCredentials() {
+  try {
+    const u = localStorage.getItem("sftp_user_saved");
+    const p = localStorage.getItem("sftp_pass_saved");
+    return u && p ? { username: u, password: atob(p) } : null;
+  } catch(e) { return null; }
+}
+function clearCredentials() {
+  localStorage.removeItem("sftp_user_saved");
+  localStorage.removeItem("sftp_pass_saved");
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────
+
+async function doLogin(u, p) {
+  const btn = document.getElementById("btn-login");
+  const err = document.getElementById("login-error");
+  btn.disabled = true;
+  btn.textContent = "Verbinde…";
+  err.style.display = "none";
+
+  try {
+    const res = await fetch(API + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: u, password: p })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showErr(data.error || "Fehler beim Anmelden");
+    } else {
+      token = data.token;
+      username = data.username;
+      if (document.getElementById("chk-remember").checked) {
+        saveCredentials(u, p);
+      } else {
+        clearCredentials();
+      }
+      showApp();
+      loadFiles(data.start_path || ".");
+    }
+  } catch(e) {
+    showErr("Backend nicht erreichbar. Server läuft?");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Anmelden →";
+}
+
+function showErr(msg) {
+  const el = document.getElementById("login-error");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+document.getElementById("btn-login").addEventListener("click", () => {
+  const u = document.getElementById("inp-user").value.trim();
+  const p = document.getElementById("inp-pass").value;
+  if (!u || !p) { showErr("Bitte alle Felder ausfüllen"); return; }
+  doLogin(u, p);
+});
+
+document.getElementById("inp-pass").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("btn-login").click();
+});
+
+// Auto-fill gespeicherte Zugangsdaten
+window.addEventListener("DOMContentLoaded", () => {
+  const creds = loadCredentials();
+  if (creds) {
+    document.getElementById("inp-user").value = creds.username;
+    document.getElementById("inp-pass").value = creds.password;
+    document.getElementById("chk-remember").checked = true;
+  }
+});
+
+// ── SHOW/HIDE ─────────────────────────────────────────────────────────
+
+function showApp() {
+  document.getElementById("login-screen").style.display = "none";
+  const app = document.getElementById("app-screen");
+  app.style.display = "flex";
+}
+
+function showLogin() {
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("app-screen").style.display = "none";
+}
+
+// ── LOGOUT ────────────────────────────────────────────────────────────
+
+document.getElementById("btn-logout").addEventListener("click", async () => {
+  await apiFetch("/logout", { method: "POST" }).catch(() => {});
+  token = null;
+  showLogin();
+});
+
+// ── FILE LISTING ──────────────────────────────────────────────────────
+
+async function loadFiles(path) {
+  currentPath = path;
+  document.getElementById("file-list").innerHTML = '<div class="loading"><div class="spinner"></div><br>Lade…</div>';
+  updateBreadcrumb(path);
+
+  try {
+    const res = await apiFetch("/list?path=" + encodeURIComponent(path));
+    if (res.status === 401) { showLogin(); return; }
+    const data = await res.json();
+    if (data.error) { toast(data.error, "error"); return; }
+    currentPath = data.path;
+    updateBreadcrumb(data.path);
+    renderFiles(data.items, data.path);
+  } catch(e) {
+    toast("Verbindung verloren", "error");
+  }
+}
+
+function renderFiles(items, path) {
+  const list = document.getElementById("file-list");
+
+  if (items.length === 0 && path.split("/").length <= 2) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">📭</div>Ordner ist leer</div>';
+    return;
+  }
+
+  let html = "";
+
+  // Zurück-Button
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length > 0) {
+    const parent = "/" + parts.slice(0, -1).join("/") || "/";
+    html += `<div class="back-item" data-nav="${parent}">
+      <span style="font-size:20px">↩</span>
+      <span>Zurück</span>
+    </div>`;
+  }
+
+  if (items.length === 0) {
+    html += '<div class="empty-state"><div class="icon">📭</div>Ordner ist leer</div>';
+    list.innerHTML = html;
+    list.querySelectorAll("[data-nav]").forEach(el => el.addEventListener("click", () => loadFiles(el.dataset.nav)));
+    return;
+  }
+
+  for (const f of items) {
+    const fullPath = path.replace(/\/$/, "") + "/" + f.name;
+    const meta = [
+      f.is_dir ? "Ordner" : formatSize(f.size),
+      formatDate(f.modified)
+    ].filter(Boolean).join(" · ");
+
+    html += `<div class="file-item" ${f.is_dir ? `data-nav="${fullPath}"` : ""} data-path="${fullPath}" data-name="${f.name}" data-isdir="${f.is_dir}">
+      <span class="file-icon">${fileIcon(f.name, f.is_dir)}</span>
+      <div class="file-info">
+        <div class="file-name-text">${f.name}</div>
+        ${meta ? `<div class="file-meta">${meta}</div>` : ""}
+      </div>
+      <div class="file-actions-mobile">
+        ${!f.is_dir ? `<button class="act-btn" data-dl="${fullPath}" title="Herunterladen">⬇</button>` : ""}
+        <button class="act-btn" data-rename="${fullPath}" data-name="${f.name}" title="Umbenennen">✎</button>
+        <button class="act-btn del" data-delete="${fullPath}" data-isdir="${f.is_dir}" title="Löschen">✕</button>
+      </div>
+    </div>`;
+  }
+
+  list.innerHTML = html;
+
+  list.querySelectorAll("[data-nav]").forEach(el => el.addEventListener("click", () => loadFiles(el.dataset.nav)));
+  list.querySelectorAll("[data-dl]").forEach(btn => btn.addEventListener("click", e => { e.stopPropagation(); downloadFile(btn.dataset.dl); }));
+  list.querySelectorAll("[data-rename]").forEach(btn => btn.addEventListener("click", e => { e.stopPropagation(); renamePrompt(btn.dataset.rename, btn.dataset.name); }));
+  list.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", e => {
+    e.stopPropagation();
+    if (confirm(`"${btn.closest("[data-name]")?.dataset.name}" wirklich löschen?`)) deleteItem(btn.dataset.delete, btn.dataset.isdir === "true");
+  }));
+}
+
+function updateBreadcrumb(path) {
+  const bc = document.getElementById("breadcrumb");
+  const parts = path.split("/").filter(Boolean);
+  let html = `<span class="bc-part" data-path="/">~</span>`;
+  let built = "";
+  for (let i = 0; i < parts.length; i++) {
+    built += "/" + parts[i];
+    const isCurrent = i === parts.length - 1;
+    html += `<span class="bc-sep">/</span><span class="bc-part ${isCurrent ? "current" : ""}" data-path="${built}">${parts[i]}</span>`;
+  }
+  bc.innerHTML = html;
+  bc.querySelectorAll(".bc-part:not(.current)").forEach(el => el.addEventListener("click", () => loadFiles(el.dataset.path)));
+  // Scroll to end
+  setTimeout(() => { bc.scrollLeft = bc.scrollWidth; }, 50);
+}
+
+// ── DOWNLOAD ─────────────────────────────────────────────────────────
+
+async function downloadFile(path) {
+  try {
+    const res = await apiFetch("/download?path=" + encodeURIComponent(path));
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = path.split("/").pop();
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("✓ Download gestartet");
+  } catch(e) { toast("Download fehlgeschlagen", "error"); }
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────────────
+
+document.getElementById("btn-toggle-upload").addEventListener("click", () => {
+  const z = document.getElementById("upload-zone");
+  z.classList.toggle("visible");
+  if (z.classList.contains("visible")) document.getElementById("file-input").click();
+});
+
+document.getElementById("upload-zone").addEventListener("click", () => document.getElementById("file-input").click());
+document.getElementById("file-input").addEventListener("change", e => uploadFiles(e.target.files));
+
+async function uploadFiles(files) {
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("path", currentPath);
+    try {
+      const res = await apiFetch("/upload", { method: "POST", body: fd, headers: { "X-Auth-Token": token } });
+      const data = await res.json();
+      if (data.ok) toast(`✓ ${file.name} hochgeladen`);
+      else toast(data.error, "error");
+    } catch(e) { toast("Upload fehlgeschlagen", "error"); }
+  }
+  loadFiles(currentPath);
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────
+
+let modalCallback = null;
+
+function openModal(title, defaultVal, cb) {
+  document.getElementById("modal-title").textContent = title;
+  document.getElementById("modal-input").value = defaultVal;
+  document.getElementById("modal").classList.add("open");
+  setTimeout(() => document.getElementById("modal-input").focus(), 100);
+  modalCallback = cb;
+}
+
+document.getElementById("modal-cancel").addEventListener("click", () => document.getElementById("modal").classList.remove("open"));
+document.getElementById("modal-ok").addEventListener("click", () => {
+  const val = document.getElementById("modal-input").value.trim();
+  document.getElementById("modal").classList.remove("open");
+  if (val && modalCallback) modalCallback(val);
+});
+document.getElementById("modal-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("modal-ok").click();
+  if (e.key === "Escape") document.getElementById("modal-cancel").click();
+});
+
+// ── RENAME ────────────────────────────────────────────────────────────
+
+function renamePrompt(path, name) {
+  openModal("Umbenennen", name, async newName => {
+    const dir = path.substring(0, path.lastIndexOf("/"));
+    const res = await apiFetch("/rename", { method: "POST", body: JSON.stringify({ old_path: path, new_path: dir + "/" + newName }) });
+    const data = await res.json();
+    if (data.ok) { toast("✓ Umbenannt"); loadFiles(currentPath); }
+    else toast(data.error, "error");
+  });
+}
+
+// ── DELETE ────────────────────────────────────────────────────────────
+
+async function deleteItem(path, isDir) {
+  const res = await apiFetch("/delete", { method: "POST", body: JSON.stringify({ path, is_dir: isDir }) });
+  const data = await res.json();
+  if (data.ok) { toast("✓ Gelöscht"); loadFiles(currentPath); }
+  else toast(data.error, "error");
+}
+
+// ── MKDIR ─────────────────────────────────────────────────────────────
+
+document.getElementById("btn-mkdir").addEventListener("click", () => {
+  openModal("Neuer Ordner", "", async name => {
+    const path = currentPath.replace(/\/$/, "") + "/" + name;
+    const res = await apiFetch("/mkdir", { method: "POST", body: JSON.stringify({ path }) });
+    const data = await res.json();
+    if (data.ok) { toast("✓ Ordner erstellt"); loadFiles(currentPath); }
+    else toast(data.error, "error");
+  });
+});
+
+document.getElementById("btn-refresh").addEventListener("click", () => loadFiles(currentPath));
+</script>
+</body>
+</html>
