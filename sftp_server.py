@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import paramiko
@@ -6,6 +5,7 @@ import io
 import os
 import stat
 import secrets
+import socket
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
@@ -20,6 +20,15 @@ def get_sftp(token):
         return None, None
     return sessions[token].get("sftp"), sessions[token].get("transport")
 
+@app.route("/api/ping", methods=["GET"])
+def ping():
+    try:
+        sock = socket.create_connection((SSH_HOST, SSH_PORT), timeout=10)
+        sock.close()
+        return jsonify({"ok": True, "msg": "Port 22 erreichbar!"})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.json
@@ -28,7 +37,8 @@ def login():
     if not username or not password:
         return jsonify({"error": "Benutzername und Passwort erforderlich"}), 400
     try:
-        transport = paramiko.Transport((SSH_HOST, SSH_PORT))
+        sock = socket.create_connection((SSH_HOST, SSH_PORT), timeout=15)
+        transport = paramiko.Transport(sock)
         transport.connect(username=username, password=password)
         sftp = paramiko.SFTPClient.from_transport(transport)
         token = secrets.token_hex(32)
